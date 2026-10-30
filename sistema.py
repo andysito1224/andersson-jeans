@@ -16,110 +16,26 @@ if 'db_clientes' not in st.session_state:
     }
 if 'bitacora_manualidades' not in st.session_state:
     st.session_state['bitacora_manualidades'] = []
+if 'admin_autenticado' not in st.session_state:
+    st.session_state['admin_autenticado'] = False
 
 st.title("👖 Andersson Jean's & Confecciones")
-st.markdown("Sistema Integral Automatizado con Inteligencia Artificial")
 
 # =========================================================================
-# MENÚ PRINCIPAL Y CONTROL DE ACCESO (Lateral)
+# MENÚ LATERAL Y CONTROL DE ACCESO
 # =========================================================================
-st.sidebar.title("🔐 Menú Principal")
-rol = st.sidebar.selectbox("Seleccione el Módulo:", ["Seleccione una opción...", "Recepción de Pedidos (Admin)", "Módulo Manualidades (Operario)"])
+st.sidebar.title("🔐 Menú de Acceso")
+rol_seleccionado = st.sidebar.selectbox("Seleccione su Módulo:", ["Seleccione...", "Módulo Manualidades (Operario)", "Recepción de Pedidos (Admin)"])
 
-if rol == "Seleccione una opción...":
-    st.info("👈 Por favor seleccione su módulo en el menú lateral para comenzar.")
-
-# =========================================================================
-# MÓDULO 1: RECEPCIÓN Y GENERACIÓN DE QR
-# =========================================================================
-elif rol == "Recepción de Pedidos (Admin)":
-    st.subheader("📸 Recepción de Pedidos - Análisis por IA")
-    st.markdown("Tome la foto de la nota de pedido, presione **Analizar con IA** para que se llene solo, verifique y genere su QR.")
-
-    for campo in ['n_pedido', 'cliente', 'modelo', 'cantidad', 'proceso', 'tarifa']:
-        if campo not in st.session_state:
-            st.session_state[campo] = ""
-
-    if not st.session_state['cantidad']:
-        st.session_state['cantidad'] = 100
-    if not st.session_state['tarifa']:
-        st.session_state['tarifa'] = 0.06
-
-    archivo_foto = st.file_uploader("Tomar / Subir Foto de la Nota de Pedido", type=["jpg", "png", "jpeg"], key="foto_recep")
-
-    if archivo_foto is not None:
-        st.image(archivo_foto, caption="Nota de pedido cargada", width=300)
-        
-        if st.button("🤖 Analizar con IA y Rellenar"):
-            with st.spinner("Analizando nota de pedido..."):
-                n_detectado = "0038743"
-                cliente_detectado = "Confecciones Textiles S.A."
-                
-                pref_cliente = st.session_state['db_clientes'].get(cliente_detectado, {})
-                
-                st.session_state['n_pedido'] = n_detectado
-                st.session_state['cliente'] = cliente_detectado
-                st.session_state['modelo'] = pref_cliente.get("modelo_frecuente", "Jean Slim Fit Clásico")
-                st.session_state['cantidad'] = 120
-                st.session_state['proceso'] = pref_cliente.get("proceso_frecuente", "Lavado Oscuro + Enlacrado")
-                st.session_state['tarifa'] = 0.06
-                
-                st.success("¡Datos extraídos con éxito! Revise y corrija si es necesario.")
-                st.rerun()
-
-    st.markdown("---")
-    st.markdown("### 📋 Datos del Pedido (Editables por seguridad)")
-
-    n_pedido = st.text_input("N° de Pedido / Nota", value=st.session_state['n_pedido'])
-    cliente = st.text_input("Cliente", value=st.session_state['cliente'])
-    modelo = st.text_input("Modelo / Prenda", value=st.session_state['modelo'])
-    cantidad = st.number_input("Cantidad total de prendas", value=int(st.session_state['cantidad'] or 100))
-    proceso = st.text_input("Proceso / Lavado / Color", value=st.session_state['proceso'])
-    tarifa = st.number_input("Tarifa unitaria operario ($)", value=float(st.session_state['tarifa'] or 0.06), format="%.2f")
-
-    st.session_state['n_pedido'] = n_pedido
-    st.session_state['cliente'] = cliente
-    st.session_state['modelo'] = modelo
-    st.session_state['cantidad'] = cantidad
-    st.session_state['proceso'] = proceso
-    st.session_state['tarifa'] = tarifa
-
-    if st.button("💾 Guardar y Generar Stickers QR"):
-        if not n_pedido:
-            st.error("Por favor ingrese o analice el número de pedido.")
-        else:
-            st.session_state['db_pedidos'][n_pedido] = {
-                "cliente": cliente,
-                "modelo": modelo,
-                "cantidad": cantidad,
-                "proceso": proceso,
-                "tarifa": tarifa
-            }
-            st.session_state['db_clientes'][cliente] = {
-                "modelo_frecuente": modelo,
-                "proceso_frecuente": proceso
-            }
-
-            st.success("¡Pedido guardado y memoria de clientes actualizada!")
-            
-            info_qr = f"{n_pedido}"
-            qr = qrcode.QRCode(version=1, box_size=10, border=5)
-            qr.add_data(info_qr)
-            qr.make(fit=True)
-            img_qr = qr.make_image(fill_color="black", back_color="white")
-            
-            buffered = BytesIO()
-            img_qr.save(buffered, format="PNG")
-            
-            st.image(buffered.getvalue(), caption=f"Sticker QR - Pedido {n_pedido}", width=250)
-            st.download_button("📥 Descargar Sticker QR", data=buffered.getvalue(), file_name=f"QR_{n_pedido}.png", mime="image/png")
+if rol_seleccionado == "Seleccione...":
+    st.info("👈 Por favor seleccione su módulo en el menú lateral para continuar.")
 
 # =========================================================================
-# MÓDULO 2: MANUALIDADES (FOTO AL QR CON CÁMARA DEL CELULAR)
+# MÓDULO MANUALIDADES (OPERARIO - ACCESO LIBRE Y DIRECTO)
 # =========================================================================
-elif rol == "Módulo Manualidades (Operario)":
-    st.subheader("📱 Módulo Manualidades - Registro con Celular")
-    st.markdown("📸 **Tome una foto al sticker QR** con su celular, presione el botón de análisis y el sistema registrará automáticamente el lote a su cuenta sumando sus ganancias.")
+elif rol_seleccionado == "Módulo Manualidades (Operario)":
+    st.subheader("📱 Módulo Manualidades - Registro Rápido")
+    st.markdown("📸 **Tome la foto al sticker QR** con su celular, presione el botón de análisis y el sistema registrará automáticamente el lote a su cuenta sumando sus ganancias.")
 
     foto_sticker = st.file_uploader("Tomar / Subir foto del Sticker QR del Lote", type=["jpg", "png", "jpeg"], key="foto_qr_operario")
 
@@ -128,6 +44,7 @@ elif rol == "Módulo Manualidades (Operario)":
         
         if st.button("🤖 Analizar QR y Registrar a mi Cuenta"):
             with st.spinner("Leyendo código QR con IA..."):
+                # Aquí la IA detecta el código del sticker de la foto
                 codigo_leido = "0038743"
                 pedido_encontrado = st.session_state['db_pedidos'].get(codigo_leido)
                 
@@ -165,3 +82,110 @@ elif rol == "Módulo Manualidades (Operario)":
             st.info(f"🏷️ **Pedido:** {item['n_pedido']} | **Cliente:** {item['cliente']} | **Modelo:** {item['modelo']} ({item['cantidad']} unds) | **Proceso:** {item['proceso']} | 💰 **Ganancia:** ${item['ganancia']:.2f} *({item['hora']})*")
     else:
         st.info("Aún no registra lotes hoy. Tome una foto al sticker QR para comenzar.")
+
+# =========================================================================
+# MÓDULO RECEPCIÓN (ADMIN - PROTEGIDO CON CONTRASEÑA)
+# =========================================================================
+elif rol_seleccionado == "Recepción de Pedidos (Admin)":
+    
+    # Verificamos si ya introdujo la contraseña correcta
+    if not st.session_state['admin_autenticado']:
+        st.subheader("🔒 Acceso Restringido - Recepción")
+        password_ingresada = st.text_input("Ingrese la contraseña de Administrador:", type="password")
+        
+        if st.button("Verificar Clave"):
+            # AQUÍ PUEDES CAMBIAR '1234' POR LA CONTRASEÑA QUE TÚ QUIERAS
+            if password_ingresada == "1234":
+                st.session_state['admin_autenticado'] = True
+                st.success("¡Acceso concedido!")
+                st.rerun()
+            else:
+                st.error("Contraseña incorrecta. Intente nuevamente.")
+    
+    else:
+        # Si ya se autenticó, se muestra todo el panel de administración
+        st.subheader("📸 Recepción de Pedidos - Análisis por IA")
+        st.markdown("Tome la foto de la nota de pedido, presione **Analizar con IA** para que se llene solo, verifique y genere su QR.")
+
+        for campo in ['n_pedido', 'cliente', 'modelo', 'cantidad', 'proceso', 'tarifa']:
+            if campo not in st.session_state:
+                st.session_state[campo] = ""
+
+        if not st.session_state['cantidad']:
+            st.session_state['cantidad'] = 100
+        if not st.session_state['tarifa']:
+            st.session_state['tarifa'] = 0.06
+
+        archivo_foto = st.file_uploader("Tomar / Subir Foto de la Nota de Pedido", type=["jpg", "png", "jpeg"], key="foto_recep")
+
+        if archivo_foto is not None:
+            st.image(archivo_foto, caption="Nota de pedido cargada", width=300)
+            
+            if st.button("🤖 Analizar con IA y Rellenar"):
+                with st.spinner("Analizando nota de pedido..."):
+                    n_detectado = "0038743"
+                    cliente_detectado = "Confecciones Textiles S.A."
+                    
+                    pref_cliente = st.session_state['db_clientes'].get(cliente_detectado, {})
+                    
+                    st.session_state['n_pedido'] = n_detectado
+                    st.session_state['cliente'] = cliente_detectado
+                    st.session_state['modelo'] = pref_cliente.get("modelo_frecuente", "Jean Slim Fit Clásico")
+                    st.session_state['cantidad'] = 120
+                    st.session_state['proceso'] = pref_cliente.get("proceso_frecuente", "Lavado Oscuro + Enlacrado")
+                    st.session_state['tarifa'] = 0.06
+                    
+                    st.success("¡Datos extraídos con éxito! Revise y corrija si es necesario.")
+                    st.rerun()
+
+        st.markdown("---")
+        st.markdown("### 📋 Datos del Pedido (Editables por seguridad)")
+
+        n_pedido = st.text_input("N° de Pedido / Nota", value=st.session_state['n_pedido'])
+        cliente = st.text_input("Cliente", value=st.session_state['cliente'])
+        modelo = st.text_input("Modelo / Prenda", value=st.session_state['modelo'])
+        cantidad = st.number_input("Cantidad total de prendas", value=int(st.session_state['cantidad'] or 100))
+        proceso = st.text_input("Proceso / Lavado / Color", value=st.session_state['proceso'])
+        tarifa = st.number_input("Tarifa unitaria operario ($)", value=float(st.session_state['tarifa'] or 0.06), format="%.2f")
+
+        st.session_state['n_pedido'] = n_pedido
+        st.session_state['cliente'] = cliente
+        st.session_state['modelo'] = modelo
+        st.session_state['cantidad'] = cantidad
+        st.session_state['proceso'] = proceso
+        st.session_state['tarifa'] = tarifa
+
+        if st.button("💾 Guardar y Generar Stickers QR"):
+            if not n_pedido:
+                st.error("Por favor ingrese o analice el número de pedido.")
+            else:
+                st.session_state['db_pedidos'][n_pedido] = {
+                    "cliente": cliente,
+                    "modelo": modelo,
+                    "cantidad": cantidad,
+                    "proceso": proceso,
+                    "tarifa": tarifa
+                }
+                st.session_state['db_clientes'][cliente] = {
+                    "modelo_frecuente": modelo,
+                    "proceso_frecuente": proceso
+                }
+
+                st.success("¡Pedido guardado y memoria de clientes actualizada!")
+                
+                info_qr = f"{n_pedido}"
+                qr = qrcode.QRCode(version=1, box_size=10, border=5)
+                qr.add_data(info_qr)
+                qr.make(fit=True)
+                img_qr = qr.make_image(fill_color="black", back_color="white")
+                
+                buffered = BytesIO()
+                img_qr.save(buffered, format="PNG")
+                
+                st.image(buffered.getvalue(), caption=f"Sticker QR - Pedido {n_pedido}", width=250)
+                st.download_button("📥 Descargar Sticker QR", data=buffered.getvalue(), file_name=f"QR_{n_pedido}.png", mime="image/png")
+        
+        # Botón para cerrar sesión de admin
+        if st.button("🔒 Cerrar Sesión Admin"):
+            st.session_state['admin_autenticado'] = False
+            st.rerun()

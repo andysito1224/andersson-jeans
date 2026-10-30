@@ -2,53 +2,48 @@ import streamlit as st
 import qrcode
 from io import BytesIO
 
-st.set_page_config(page_title="Andersson Jean's - Control por Roles", page_icon="👖", layout="centered")
+st.set_page_config(page_title="Andersson Jean's - Control Operarios", page_icon="👖", layout="centered")
 
 st.title("👖 Andersson Jean's & Confecciones")
-st.subheader("Sistema Inteligente de Taller y Bodega")
+st.subheader("Sistema Rápido de Escaneo para Operarios")
 
-# BASE DE DATOS DE USUARIOS Y ROLES ESPECÍFICOS
+# BASE DE DATOS DE USUARIOS Y ROLES
 ROLES_DB = {
-    # Chofer y Recepción (Ingreso de Lotes y QR)
     "1001": {"nombre": "Chofer / Logística", "rol": "Recepcion"},
     "1002": {"nombre": "Recepcionista", "rol": "Recepcion"},
-    
-    # Operarios de Manualidades
     "1111": {"nombre": "Patto", "rol": "Operario"},
     "2222": {"nombre": "Henry", "rol": "Operario"},
     "3333": {"nombre": "Wagner", "rol": "Operario"},
     "4444": {"nombre": "Geison", "rol": "Operario"},
-    
-    # Administradores (Tú y familia - Control total e inventario mamá)
     "admin": {"nombre": "Administrador (Jefe)", "rol": "Admin"}
 }
 
-# Memoria global en sesión
+# Memoria global
 if 'produccion_operarios' not in st.session_state:
     st.session_state.produccion_operarios = {
         "Patto": [], "Henry": [], "Wagner": [], "Geison": [], "Otros": []
     }
 
 if 'lotes_oficiales' not in st.session_state:
-    st.session_state.lotes_oficiales = [
-        {"id": 1, "cliente": "Geison Urrutia", "prenda": "3 Botones", "cantidad": 1350, "proceso": "Azul y Negro", "precio": 0.06}
-    ]
+    st.session_state.lotes_oficiales = {
+        "1": {"id": 1, "cliente": "Geison Urrutia", "prenda": "3 Botones", "cantidad": 1350, "proceso": "Azul y Negro", "precio": 0.06},
+        "2": {"id": 2, "cliente": "Geison Urrutia", "prenda": "Falda PP", "cantidad": 112, "proceso": "San Blas", "precio": 0.06}
+    }
 
 if 'inventario_confeccion' not in st.session_state:
     st.session_state.inventario_confeccion = [
         {"modelo": "Kasandra", "talla": "8", "stock": 48, "precio": 10.00},
-        {"modelo": "Modelo A", "talla": "10", "stock": 24, "precio": 10.00},
     ]
 
 if 'historial_salidas' not in st.session_state:
     st.session_state.historial_salidas = []
 
-# --- CONTROL DE ACCESO (LOGIN) ---
+# --- LOGIN ---
 if 'usuario_actual' not in st.session_state:
     st.session_state.usuario_actual = None
 
 if st.session_state.usuario_actual is None:
-    st.markdown("### 🔐 Acceso Autorizado")
+    st.markdown("### 🔐 Acceso al Sistema")
     ingreso_clave = st.text_input("Ingrese su Cédula o Clave personal", type="password")
     
     if st.button("🚀 Ingresar"):
@@ -57,10 +52,9 @@ if st.session_state.usuario_actual is None:
             st.success(f"¡Bienvenido, {st.session_state.usuario_actual['nombre']}!")
             st.rerun()
         else:
-            st.error("❌ Clave o cédula incorrecta.")
+            st.error("❌ Clave incorrecta.")
     st.stop()
 
-# Barra lateral informativa y cierre de sesión
 nombre_user = st.session_state.usuario_actual['nombre']
 rol_user = st.session_state.usuario_actual['rol']
 
@@ -73,80 +67,73 @@ if st.sidebar.button("🚪 Cerrar Sesión"):
 st.sidebar.markdown("---")
 
 # ==========================================
-# 1. MENÚ PARA CHOFER Y RECEPCIÓN
+# 1. RECEPCIÓN Y CHOFER (CREAR LOTES / QR)
 # ==========================================
 if rol_user == "Recepcion":
-    st.header("📸 Módulo de Recepción y Paradas (Chofer / Recepción)")
-    st.write("Tome la foto de la nota de pedido, ingrese los datos y genere los stickers con QR para el taller.")
-
-    with st.form("form_recepcion_parada"):
-        foto_nota = st.file_uploader("Tomar / Subir Foto de la Nota de Pedido", type=["jpg", "jpeg", "png"])
-        cliente_p = st.text_input("Nombre del Cliente", value="Geison Urrutia")
-        modelo_p = st.text_input("Modelo o Prenda", value="Baggy / 3 Botones")
-        cantidad_p = st.number_input("Cantidad de prendas de esta parada", min_value=1, value=112)
-        proceso_p = st.text_input("Proceso / Lavado / Color", value="Azul / Negro")
-        tarifa_p = st.number_input("Tarifa unitaria operario ($)", min_value=0.01, value=0.06)
-
-        guardar_parada = st.form_submit_button("💾 Guardar Parada y Generar QR (Nuevo)")
+    st.header("📸 Ingreso de Paradas y Stickers QR")
+    with st.form("form_rec"):
+        foto = st.file_uploader("Foto de la Nota de Pedido", type=["jpg", "jpeg", "png"])
+        cli = st.text_input("Cliente", value="Geison Urrutia")
+        prend = st.text_input("Prenda / Modelo", value="3 Botones")
+        cant = st.number_input("Cantidad de prendas", min_value=1, value=112)
+        proc = st.text_input("Proceso / Lavado", value="San Blas")
+        tarifa = st.number_input("Tarifa unitaria ($)", min_value=0.01, value=0.06)
         
-        if guardar_parada:
-            nuevo_id = len(st.session_state.lotes_oficiales) + 1
-            st.session_state.lotes_oficiales.append({
-                "id": nuevo_id, "cliente": cliente_p, "prenda": modelo_p, 
-                "cantidad": cantidad_p, "proceso": proceso_p, "precio": tarifa_p
-            })
-            st.success(f"¡Parada #{nuevo_id} guardada con éxito en el sistema! Lista para imprimir.")
+        btn_crear = st.form_submit_button("💾 Guardar y Generar QR")
+        if btn_crear:
+            nuevo_id = str(len(st.session_state.lotes_oficiales) + 1)
+            st.session_state.lotes_oficiales[nuevo_id] = {
+                "id": nuevo_id, "cliente": cli, "prenda": prend, "cantidad": cant, "proceso": proc, "precio": tarifa
+            }
+            st.success(f"¡Lote #{nuevo_id} creado con éxito!")
 
     st.markdown("---")
-    st.subheader("🏷️ Lotes y Stickers QR Listos para Imprimir")
-    for l in st.session_state.lotes_oficiales:
-        st.markdown(f"""
-        * **Lote #{l['id']}** | Cliente: **{l['cliente']}** | Prenda: `{l['prenda']}` | Cantidad: **{l['cantidad']} un.** | Proceso: `{l['proceso']}`
-        """)
-        qr_data = f"LOTE_ID_{l['id']}_CANT_{l['cantidad']}"
+    st.subheader("🏷️ Stickers Generados")
+    for k, l in st.session_state.lotes_oficiales.items():
+        st.markdown(f"* **Lote #{k}** | {l['cliente']} - {l['prenda']} ({l['cantidad']} un.) | Proceso: {l['proceso']}")
+        qr_data = f"LOTE_{k}"
         img = qrcode.make(qr_data)
-        buffered = BytesIO()
-        img.save(buffered, format="PNG")
-        st.image(buffered.getvalue(), width=130, caption=f"QR Parada #{l['id']}")
+        buf = BytesIO()
+        img.save(buf, format="PNG")
+        st.image(buf.getvalue(), width=120, caption=f"QR Lote #{k}")
 
 # ==========================================
-# 2. MENÚ PARA OPERARIOS (MANUALIDADES)
+# 2. OPERARIOS (PANTALLA DE ESCANEO CONTINUO)
 # ==========================================
 elif rol_user == "Operario":
-    st.header(f"📱 Panel de Producción - {nombre_user}")
-    st.write("Escanee el código QR del siguiente lote o selecciónelo en la lista para sumarlo a su bitácora:")
+    st.header(f"📱 Escaneo de Producción - {nombre_user}")
+    st.write("Escanee o ingrese el número de lote del sticker para registrarlo al instante:")
 
-    if not st.session_state.lotes_oficiales:
-        st.info("No hay lotes activos asignados por recepción todavía.")
-    else:
-        opciones = [f"Lote #{l['id']} - {l['cliente']} ({l['prenda']} - {l['cantidad']} un.) - {l['proceso']}" for l in st.session_state.lotes_oficiales]
-        lote_sel = st.selectbox("Seleccionar Lote Siguiente / Escaneado", opciones)
+    # Cuadro rápido para colocar el código del lote escaneado
+    with st.form("form_escaneo_rapido", clear_on_submit=True):
+        codigo_escaneado = st.text_input("🔍 Escanear / Digitar Código de Lote (ej: 1, 2, 3...)")
+        btn_registrar = st.form_submit_button("⚡ Registrar Lote Escaneado")
         
-        id_lote = int(lote_sel.split("Lote #")[1].split(" -")[0])
-        info = next(l for l in st.session_state.lotes_oficiales if l['id'] == id_lote)
-
-        st.info(f"""
-        📌 **Detalle del Lote Seleccionado:**
-        * **Cliente:** {info['cliente']}
-        * **Prenda:** {info['prenda']} ({info['cantidad']} un.)
-        * **Proceso:** {info['proceso']}
-        * **Total generado para ti:** **${(info['cantidad'] * info['precio']):.2f}**
-        """)
-
-        if st.button("🚀 Confirmar y Registrar en mi Bitácora"):
-            st.session_state.produccion_operarios[nombre_user].append({
-                "lote_id": info['id'],
-                "cliente": info['cliente'],
-                "detalle": f"{info['cantidad']} un. - {info['prenda']} ({info['proceso']})",
-                "total": info['cantidad'] * info['precio']
-            })
-            st.success("¡Lote registrado con éxito! Ya puedes escanear o seleccionar el siguiente lote.")
+        if btn_registrar:
+            # Limpiar el código por si escanean texto con formato
+            code_clean = codigo_escaneado.strip().replace("LOTE_", "")
+            
+            if code_clean in st.session_state.lotes_oficiales:
+                lote = st.session_state.lotes_oficiales[code_clean]
+                total_lote = lote['cantidad'] * lote['precio']
+                
+                # Guardar directo en la bitácora del operario
+                st.session_state.produccion_operarios[nombre_user].append({
+                    "lote_id": lote['id'],
+                    "cliente": lote['cliente'],
+                    "detalle": f"{lote['cantidad']} un. - {lote['prenda']} ({lote['proceso']})",
+                    "total": total_lote
+                })
+                st.success(f"✅ ¡Lote #{lote['id']} registrado! Se sumaron ${total_lote:.2f} a tu bitácora.")
+            else:
+                st.error("❌ Código de lote no encontrado o inválido. Verifique el QR.")
 
     st.markdown("---")
     st.subheader("📊 Tu Bitácora y Ganancias de Hoy")
     mis_reg = st.session_state.produccion_operarios.get(nombre_user, [])
+    
     if not mis_reg:
-        st.write("_Aún no tienes registros hoy._")
+        st.info("_Aún no tienes lotes registrados hoy. Escanea tu primer lote arriba._")
     else:
         total_dia = 0
         for idx, item in enumerate(mis_reg, 1):
@@ -155,78 +142,24 @@ elif rol_user == "Operario":
         st.markdown(f"### ⚡ Total Generado Hoy: `💲 {total_dia:.2f}`")
 
 # ==========================================
-# 3. MENÚ PARA ADMINISTRADOR (TÚ Y FAMILIA)
+# 3. ADMINISTRADOR
 # ==========================================
 elif rol_user == "Admin":
-    menu_admin = st.sidebar.selectbox("Panel Administrativo", [
-        "1. Cuentas Generales del Taller",
-        "2. 📦 Inventario y Bodega (Mamá)",
-        "3. 🚚 Registrar Salida (4 Destinos)"
-    ])
-
-    if menu_admin == "1. Cuentas Generales del Taller":
-        st.header("📊 Resumen General de Operarios")
-        total_fabrica = 0
-        for op, lista in st.session_state.produccion_operarios.items():
-            if lista:
-                st.markdown(f"### 👷 Operario: {op}")
-                sub_op = sum(x['total'] for x in lista)
-                for item in lista:
-                    st.markdown(f"- Lote #{item['lote_id']} ({item['cliente']}): {item['detalle']} -> **${item['total']:.2f}**")
-                st.markdown(f"**Subtotal {op}: ${sub_op:.2f}**")
-                total_fabrica += sub_op
-                st.markdown("---")
-        st.subheader(f"🏭 Total General a Pagar en Fábrica: ${total_fabrica:.2f}")
-
-    elif menu_admin == "2. 📦 Inventario y Bodega (Mamá)":
-        st.header("🧵 Inventario en Vivo - Confección de Mamá")
-        st.write("Control directo de cortes, bodega y stock disponible para la venta.")
-
-        with st.expander("➕ Registrar Nuevo Corte de Talonario"):
-            with st.form("form_corte_mama"):
-                m_modelo = st.text_input("Modelo / Nombre del Corte (ej: Kasandra, Wayted)")
-                m_talla = st.selectbox("Talla", ["6", "8", "10", "12", "14", "16", "18", "20", "28", "30", "32", "34"])
-                m_cant = st.number_input("Cantidad de prendas", min_value=1, value=48)
-                m_precio = st.number_input("Precio base ($)", min_value=0.0, value=10.00)
-                
-                btn_corte = st.form_submit_button("📥 Agregar a Bodega de Mamá")
-                if btn_corte and m_modelo:
-                    st.session_state.inventario_confeccion.append({
-                        "modelo": m_modelo, "talla": str(m_talla), "stock": m_cant, "precio": m_precio
-                    })
-                    st.success(f"¡Corte agregado correctamente a la bodega de mamá!")
-
-        st.markdown("---")
-        st.subheader("📋 Stock Actual en Bodega")
-        for item in st.session_state.inventario_confeccion:
-            st.markdown(f"🔹 **Modelo:** {item['modelo']} | **Talla:** {item['talla']} | Stock: **{item['stock']} un.** | Precio: **${item['precio']:.2f}**")
-
-    elif menu_admin == "3. 🚚 Registrar Salida (4 Destinos)":
-        st.header("🚚 Despacho y Descuento de Bodega")
-        st.write("Descuenta stock automáticamente hacia los 4 canales de venta oficiales:")
-
-        if not st.session_state.inventario_confeccion:
-            st.warning("No hay inventario disponible.")
-        else:
-            with st.form("form_salidas_admin"):
-                destinos = ["Mayorista", "Cuenca", "TikTok", "Clientes Fijos"]
-                canal = st.selectbox("Canal de Destino", destinos)
-                
-                opciones_stock = [f"{i['modelo']} - Talla {i['talla']} (Disponibles: {i['stock']} un.)" for i in st.session_state.inventario_confeccion]
-                prod_sel = st.selectbox("Seleccionar Prenda", opciones_stock)
-                
-                q_salida = st.number_input("Cantidad a despachar", min_value=1, value=10)
-                
-                ejecutar_salida = st.form_submit_button("📉 Descontar de Bodega")
-                if ejecutar_salida:
-                    idx = opciones_stock.index(prod_sel)
-                    actual = st.session_state.inventario_confeccion[idx]
-                    
-                    if actual['stock'] >= q_salida:
-                        st.session_state.inventario_confeccion[idx]['stock'] -= q_salida
-                        st.session_state.historial_salidas.append({
-                            "destino": canal, "modelo": actual['modelo'], "talla": actual['talla'], "cantidad": q_salida
-                        })
-                        st.success(f"¡Despacho registrado! Se descontaron {q_salida} unidades para **{canal}**. Stock restante: {st.session_state.inventario_confeccion[idx]['stock']} un.")
-                    else:
-                        st.error(f"❌ Stock insuficiente. Solo quedan {actual['stock']} unidades.")
+    menu_admin = st.sidebar.selectbox("Panel Admin", ["Cuentas del Taller", "Inventario Mamá", "Salidas (4 Destinos)"])
+    
+    if menu_admin == "Cuentas del Taller":
+        st.header("📊 Cuentas Generales")
+        tot = 0
+        for op, lst in st.session_state.produccion_operarios.items():
+            if lst:
+                sub = sum(x['total'] for x in lst)
+                st.markdown(f"**{op}:** ${sub:.2f}")
+                tot += sub
+        st.subheader(f"Total Fábrica: ${tot:.2f}")
+    elif menu_admin == "Inventario Mamá":
+        st.header("🧵 Inventario de Confección")
+        for i in st.session_state.inventario_confeccion:
+            st.markdown(f"- {i['modelo']} (Talla {i['talla']}): {i['stock']} un.")
+    elif menu_admin == "Salidas (4 Destinos)":
+        st.header("🚚 Despachos")
+        st.write("Control de salidas a Mayorista, Cuenca, TikTok y Clientes Fijos.")

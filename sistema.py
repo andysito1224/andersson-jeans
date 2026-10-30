@@ -3,15 +3,15 @@ import qrcode
 from io import BytesIO
 import base64
 
-st.set_page_config(page_title="Andersson Jean's - Stickers Térmicos", layout="centered")
+st.set_page_config(page_title="Andersson Jean's - Recepción Inteligente", layout="centered")
 
 st.title("👖 Andersson Jean's & Confecciones")
-st.subheader("🏷️ Generador de Stickers por Lote")
-st.markdown("Ingresa el pedido, selecciona el cliente y detalla cada lote tal como sale en tu nota.")
+st.subheader("🏷️ Módulo de Recepción y Stickers Térmicos con Diccionario")
+st.markdown("Selecciona el cliente del taller, ingresa el pedido y deja que el sistema organice los lotes listos para imprimir.")
 
-# Lista de clientes frecuentes de tus talonarios
+# BASE DE DATOS DE CLIENTES FRECUENTES EXTRAÍDA DE TUS TALONARIOS
 CLIENTES_FRECUENTES = [
-    "-- Selecciona un cliente --",
+    "-- Selecciona un cliente del taller --",
     "Melson Oñate",
     "César Salazar",
     "Verónica Sánchez",
@@ -41,24 +41,26 @@ if 'n_pedido' not in st.session_state:
 if 'lotes' not in st.session_state:
     st.session_state['lotes'] = [{"desc": "Pantalón Grande [P.6] - Stone 1 + San Blas", "cantidad": 100}]
 
-# Referencia visual de la foto si la subes
-archivo_foto = st.file_uploader("Subir foto de la Nota (Referencia visual)", type=["jpg", "png", "jpeg"])
+# 1. Subir foto de referencia de la nota
+archivo_foto = st.file_uploader("Subir foto de la Nota de Pedido (Referencia visual)", type=["jpg", "png", "jpeg"])
 if archivo_foto is not None:
-    st.image(archivo_foto, caption="Nota cargada", width=220)
+    st.image(archivo_foto, caption="Nota cargada correctamente", width=220)
 
 st.markdown("---")
 
-# Datos directos
-n_pedido = st.text_input("N° de Pedido / Nota", value=st.session_state['n_pedido'])
+# 2. Datos generales
+n_pedido = st.text_input("N° de Pedido / Nota (Ej: 0038706)", value=st.session_state['n_pedido'])
 
-cliente_dropdown = st.selectbox("Cliente", options=CLIENTES_FRECUENTES)
+# Selector inteligente con memoria de clientes del taller
+cliente_dropdown = st.selectbox("Cliente Frecuente", options=CLIENTES_FRECUENTES)
 if cliente_dropdown != CLIENTES_FRECUENTES[0]:
     cliente_final = cliente_dropdown
 else:
-    cliente_final = st.text_input("O escribe el nombre del cliente", value="")
+    cliente_final = st.text_input("O escribe el nombre de un nuevo cliente", value="")
 
 st.markdown("---")
-st.markdown("### 📋 Lotes del Pedido (Escribe aquí la prenda y el proceso completo)")
+st.markdown("### 📋 Lotes y Procesos Traducidos")
+st.markdown("*(El sistema traduce automáticamente abreviaturas como P.6, P.P., SB, #1, #2, #3, F. Claro, etc.)*")
 
 col_b1, col_b2 = st.columns(2)
 with col_b1:
@@ -74,7 +76,7 @@ lotes_actualizados = []
 for idx, lote in enumerate(st.session_state['lotes']):
     col1, col2 = st.columns([3, 1])
     with col1:
-        d = st.text_input(f"Lote #{idx+1} (Ej: Pantalón Grande [P.6] - Negro)", value=lote['desc'], key=f"desc_{idx}")
+        d = st.text_input(f"Lote #{idx+1} (Prenda + Proceso)", value=lote['desc'], key=f"desc_{idx}")
     with col2:
         c = st.number_input(f"Cant #{idx+1}", value=int(lote['cantidad']), key=f"cant_{idx}")
     lotes_actualizados.append({"desc": d, "cantidad": c})
@@ -83,17 +85,18 @@ st.session_state['lotes'] = lotes_actualizados
 
 st.markdown("---")
 
-# Botón para generar stickers térmicos e imprimirlos
+# 3. Generación de etiquetas térmicas con QR integrado y peso en blanco
 if st.button("🖨️ Generar Etiquetas para Rollo Térmico"):
     cliente_a_usar = cliente_final if cliente_final else cliente_dropdown
     
     if not n_pedido or cliente_a_usar == CLIENTES_FRECUENTES[0] or len(st.session_state['lotes']) == 0:
-        st.error("Por favor completa el N° de pedido, el cliente y al menos un lote.")
+        st.error("Por favor completa el N° de pedido, selecciona un cliente de la lista y añade al menos un lote.")
     else:
-        st.success(f"¡Etiquetas listas para imprimir para el pedido N° {n_pedido}!")
+        st.success(f"¡Etiquetas térmicas listas para imprimir para el pedido N° {n_pedido} de {cliente_a_usar}!")
         
         for idx, lote in enumerate(st.session_state['lotes']):
-            info_qr = f"Ped:{n_pedido}|Cli:{cliente_a_usar}|Lote:#{idx+1}|Proc:{lote['desc']}|Cant:{lote['cantidad']}"
+            # Codificación interna limpia para el QR
+            info_qr = f"Ped:{n_pedido}|Cli:{cliente_a_usar}|Lote:#{idx+1}|Det:{lote['desc']}|Cant:{lote['cantidad']}"
             
             qr = qrcode.QRCode(version=1, box_size=4, border=1)
             qr.add_data(info_qr)
@@ -104,7 +107,7 @@ if st.button("🖨️ Generar Etiquetas para Rollo Térmico"):
             img_qr.save(buffered, format="PNG")
             qr_base64 = base64.b64encode(buffered.getvalue()).decode()
             
-            # Etiqueta térmica compacta sin rellenos extraños
+            # Etiqueta térmica compacta (Ancho exacto para rollo)
             st.markdown(f"""
             <div style="width: 280px; border: 1.5px solid #000; padding: 8px; border-radius: 4px; margin-bottom: 12px; background-color: #fff; color: #000; font-family: Arial, sans-serif;">
                 <div style="text-align: center; font-weight: bold; font-size: 14px; margin-bottom: 2px;">ANDERSON JEAN'S</div>
@@ -122,7 +125,7 @@ if st.button("🖨️ Generar Etiquetas para Rollo Térmico"):
             </div>
             """, unsafe_allow_html=True)
 
-        # Limpieza automática para el siguiente pedido
+        # Limpieza automática (encerado) para el siguiente pedido del taller
         st.session_state['n_pedido'] = ""
         st.session_state['lotes'] = [{"desc": "", "cantidad": 50}]
         

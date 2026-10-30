@@ -1,4 +1,3 @@
-
 import streamlit as st
 import qrcode
 from io import BytesIO
@@ -115,19 +114,20 @@ if rol_user == "Recepcion":
 # ==========================================
 elif rol_user == "Operario":
     st.header(f"📱 Panel de Producción - {nombre_user}")
-    st.write("Escanee el código QR del lote o selecciónelo para sumarlo automáticamente a su bitácora del día.")
+    st.write("Escanee el código QR del siguiente lote o selecciónelo en la lista para sumarlo a su bitácora:")
 
     if not st.session_state.lotes_oficiales:
         st.info("No hay lotes activos asignados por recepción todavía.")
     else:
+        # Menú desplegable continuo para elegir lotes actuales o nuevos
         opciones = [f"Lote #{l['id']} - {l['cliente']} ({l['prenda']} - {l['cantidad']} un.) - {l['proceso']}" for l in st.session_state.lotes_oficiales]
-        lote_sel = st.selectbox("Seleccionar Lote Escaneado", opciones)
+        lote_sel = st.selectbox("Seleccionar Lote Siguiente / Escaneado", opciones)
         
         id_lote = int(lote_sel.split("Lote #")[1].split(" -")[0])
         info = next(l for l in st.session_state.lotes_oficiales if l['id'] == id_lote)
 
         st.info(f"""
-        📌 **Detalle del Lote:**
+        📌 **Detalle del Lote Seleccionado:**
         * **Cliente:** {info['cliente']}
         * **Prenda:** {info['prenda']} ({info['cantidad']} un.)
         * **Proceso:** {info['proceso']}
@@ -141,7 +141,7 @@ elif rol_user == "Operario":
                 "detalle": f"{info['cantidad']} un. - {info['prenda']} ({info['proceso']})",
                 "total": info['cantidad'] * info['precio']
             })
-            st.success("¡Lote registrado! Se ha sumado correctamente a tu cuenta de hoy.")
+            st.success("¡Lote registrado con éxito! Ya puedes escanear o seleccionar el siguiente lote.")
 
     st.markdown("---")
     st.subheader("📊 Tu Bitácora y Ganancias de Hoy")

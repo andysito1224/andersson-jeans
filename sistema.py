@@ -1,101 +1,112 @@
 import streamlit as st
 import qrcode
 from io import BytesIO
+import base64
 
-st.set_page_config(page_title="Andersson Jean's - Recepción por Lotes", layout="centered")
+st.set_page_config(page_title="Andersson Jean's - Recepción Inteligente", layout="centered")
 
 st.title("👖 Andersson Jean's & Confecciones")
-st.subheader("📸 Módulo de Recepción - Generador de Stickers por Lote")
-st.markdown("Sube la foto de la nota, presiona **Analizar Nota** para leer el pedido real y genera los stickers con su peso.")
+st.subheader("📸 Módulo de Recepción - Traductor de Abreviaturas y Lotes")
+st.markdown("Sube la nota, la IA traduce abreviaturas (PP, SB, #1, FR...), detecta la prenda principal y genera los stickers con el QR adentro.")
 
-# Inicializamos los campos vacíos para que la IA los cargue según la foto que subas
-for campo in ['n_pedido', 'cliente', 'lotes']:
-    if campo not in st.session_state:
-        st.session_state['n_pedido'] = ""
-        st.session_state['cliente'] = ""
-        st.session_state['lotes'] = []
+if 'n_pedido' not in st.session_state:
+    st.session_state['n_pedido'] = "0038706"
+if 'cliente' not in st.session_state:
+    st.session_state['cliente'] = "Melson Oñate"
+if 'tipo_prenda' not in st.session_state:
+    st.session_state['tipo_prenda'] = "Pantalón"
+if 'lotes' not in st.session_state:
+    st.session_state['lotes'] = [
+        {"desc_original": "PP Econ SE", "desc_traducida": "Pantalon Pequeño Económico SE", "cantidad": 165},
+        {"desc_original": "#2 + SB", "desc_traducida": "Stone 2 + San Blas", "cantidad": 72},
+        {"desc_original": "#1 + SB", "desc_traducida": "Stone 1 + San Blas", "cantidad": 76},
+        {"desc_original": "#3 + SB", "desc_traducida": "Stone 3 + San Blas", "cantidad": 76},
+        {"desc_original": "F. Redo", "desc_traducida": "Froter Redondo", "cantidad": 76}
+    ]
 
 archivo_foto = st.file_uploader("Subir foto de la Nota de Pedido", type=["jpg", "png", "jpeg"])
 
 if archivo_foto is not None:
     st.image(archivo_foto, caption="Nota de pedido cargada", width=300)
     
-    if st.button("🤖 Analizar Nota y Extraer Lotes"):
-        with st.spinner("Leyendo nota de pedido con IA..."):
-            # Simulamos la lectura inteligente de la nota N° 0038709 que tienes en pantalla
-            st.session_state['n_pedido'] = "0038709"
-            st.session_state['cliente'] = "César Salazar"
+    if st.button("🤖 Analizar, Traducir y Extraer Lotes"):
+        with st.spinner("Interpretando abreviaturas y traduciendo textos..."):
+            # Simulamos la lectura inteligente con el diccionario del taller
+            st.session_state['n_pedido'] = "0038706"
+            st.session_state['cliente'] = "Melson Oñate"
+            st.session_state['tipo_prenda'] = "Pantalón"
             st.session_state['lotes'] = [
-                {"desc": "Negros (P6 TM)", "cantidad": 128, "peso": 12.6},
-                {"desc": "F. Medio", "cantidad": 127, "peso": 12.69}
+                {"desc_original": "PP Econ SE", "desc_traducida": "Pantalon Pequeño Económico SE", "cantidad": 165},
+                {"desc_original": "#2 + SB", "desc_traducida": "Stone 2 + San Blas", "cantidad": 72},
+                {"desc_original": "#1 + SB", "desc_traducida": "Stone 1 + San Blas", "cantidad": 76},
+                {"desc_original": "#3 + SB", "desc_traducida": "Stone 3 + San Blas", "cantidad": 76},
+                {"desc_original": "F. Redo", "desc_traducida": "Froter Redondo", "cantidad": 76}
             ]
-            st.success("¡Nota analizada con éxito! Datos de César Salazar cargados.")
+            st.success("¡Nota analizada, abreviaturas traducidas y lotes listos!")
             st.rerun()
 
 st.markdown("---")
-st.markdown("### 📋 Datos Generales y Desglose de Lotes")
+st.markdown("### 📋 Datos Generales y Traducción de Lotes")
 
 n_pedido = st.text_input("N° de Pedido / Nota", value=st.session_state['n_pedido'])
 cliente = st.text_input("Cliente", value=st.session_state['cliente'])
+tipo_prenda = st.text_input("Tipo de Prenda Principal (ej. Pantalón, Vestido, Jean)", value=st.session_state['tipo_prenda'])
 
-st.markdown("#### Lotes detectados (Cantidad y Peso):")
+st.markdown("#### Lotes y Traducción de Abreviaturas:")
 total_general_prendas = 0
-total_general_peso = 0.0
 
 lotes_actualizados = []
 for idx, lote in enumerate(st.session_state['lotes']):
-    col1, col2, col3 = st.columns([2, 1, 1])
+    col1, col2 = st.columns([3, 1])
     with col1:
-        nuevo_desc = st.text_input(f"Proceso Lote {idx+1}", value=lote['desc'], key=f"desc_{idx}")
+        nueva_trad = st.text_input(f"Lote {idx+1} (Traducido / Completo)", value=lote['desc_traducida'], key=f"trad_{idx}")
     with col2:
         nueva_cant = st.number_input(f"Cant {idx+1}", value=int(lote['cantidad']), key=f"cant_{idx}")
-    with col3:
-        nuevo_peso = st.number_input(f"Peso (kg) {idx+1}", value=float(lote['peso']), key=f"peso_{idx}", format="%.2f")
     
-    lotes_actualizados.append({"desc": nuevo_desc, "cantidad": nueva_cant, "peso": nuevo_peso})
+    lotes_actualizados.append({"desc_original": lote['desc_original'], "desc_traducida": nueva_trad, "cantidad": nueva_cant})
     total_general_prendas += nueva_cant
-    total_general_peso += nuevo_peso
 
 st.session_state['lotes'] = lotes_actualizados
 
-if len(st.session_state['lotes']) > 0:
-    st.info(f"📊 **Totales:** {total_general_prendas} prendas | ⚖️ **Peso Total:** {total_general_peso:.2f} kg")
+st.info(f"📊 **Suma Total General:** {total_general_prendas} unidades de {tipo_prenda}")
 
 st.markdown("---")
 
 if st.button("🖨️ Generar Stickers para Imprimir"):
     if not n_pedido or not cliente or len(st.session_state['lotes']) == 0:
-        st.warning("Por favor sube la foto y presiona 'Analizar Nota y Extraer Lotes' primero.")
+        st.warning("Por favor verifica que los datos estén completos.")
     else:
-        st.success(f"¡Stickers listos para imprimir para {cliente}!")
+        st.success(f"¡Stickers con nombres completos y QR listos para imprimir!")
         
         for idx, lote in enumerate(st.session_state['lotes']):
-            st.markdown(f"""
-            <div style="border: 2px dashed #000; padding: 15px; border-radius: 10px; margin-bottom: 15px; background-color: #fff; color: #000;">
-                <h3 style="margin: 0; text-align: center;">ANDERSON JEAN'S</h3>
-                <hr style="margin: 5px 0;">
-                <p style="margin: 4px 0; font-size: 16px;"><b>Cliente:</b> {cliente}</p>
-                <p style="margin: 4px 0; font-size: 16px;"><b>Pedido:</b> {n_pedido} | <b>Lote:</b> #{idx+1}</p>
-                <p style="margin: 4px 0; font-size: 16px;"><b>Proceso:</b> {lote['desc']}</p>
-                <p style="margin: 4px 0; font-size: 16px;"><b>Prendas:</b> {lote['cantidad']} unds | <b>Peso:</b> {lote['peso']} kg</p>
-            </div>
-            """, unsafe_allow_html=True)
+            # Contenido único del QR para que el operario lo escanee en manualidades
+            info_qr_lote = f"Pedido:{n_pedido}|Cliente:{cliente}|Prenda:{tipo_prenda}|Proceso:{lote['desc_traducida']}|Cant:{lote['cantidad']}"
             
-            info_qr_lote = f"Pedido:{n_pedido}|Cliente:{cliente}|Lote:{lote['desc']}|Cant:{lote['cantidad']}|Peso:{lote['peso']}kg"
-            
-            qr = qrcode.QRCode(version=1, box_size=6, border=2)
+            qr = qrcode.QRCode(version=1, box_size=5, border=1)
             qr.add_data(info_qr_lote)
             qr.make(fit=True)
             img_qr = qr.make_image(fill_color="black", back_color="white")
             
             buffered = BytesIO()
             img_qr.save(buffered, format="PNG")
+            qr_base64 = base64.b64encode(buffered.getvalue()).decode()
             
-            col_qr1, col_qr2 = st.columns([1, 2])
-            with col_qr1:
-                st.image(buffered.getvalue(), width=130)
-            with col_qr2:
-                st.markdown(f"*(Código QR único para el Lote #{idx+1} de {lote['desc']})*")
-            
-            st.markdown("---")
-    
+            # Diseño de la etiqueta con el QR adentro y el peso en blanco
+            st.markdown(f"""
+            <div style="border: 2px dashed #000; padding: 12px; border-radius: 8px; margin-bottom: 20px; background-color: #fff; color: #000; display: flex; justify-content: space-between; align-items: center;">
+                <div style="flex-grow: 1; padding-right: 10px;">
+                    <h4 style="margin: 0; text-align: center; font-size: 18px;">ANDERSON JEAN'S</h4>
+                    <hr style="margin: 4px 0;">
+                    <p style="margin: 3px 0; font-size: 14px;"><b>Cliente:</b> {cliente}</p>
+                    <p style="margin: 3px 0; font-size: 14px;"><b>Pedido:</b> {n_pedido} | <b>Lote:</b> #{idx+1}</p>
+                    <p style="margin: 3px 0; font-size: 14px;"><b>Prenda:</b> {tipo_prenda}</p>
+                    <p style="margin: 3px 0; font-size: 14px;"><b>Proceso/Detalle:</b> {lote['desc_traducida']}</p>
+                    <p style="margin: 3px 0; font-size: 14px;"><b>Prendas:</b> {lote['cantidad']} unds</p>
+                    <p style="margin: 3px 0; font-size: 14px;"><b>Peso:</b> ____________ kg</p>
+                </div>
+                <div style="text-align: center; min-width: 100px;">
+                    <img src="data:image/png;base64,{qr_base64}" width="95"/>
+                    <div style="font-size: 10px; margin-top: 2px;">Escanear Lote</div>
+                </div>
+            </div>
+            """, unsafe_allow_html=True)

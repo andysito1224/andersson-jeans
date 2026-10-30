@@ -277,4 +277,3 @@ elif tipo_user == "Admin":
         else:
             for s in st.session_state.salidas_mercaderia:
                 st.markdown(f"▫️ Destino: **{s['destino']}** | Modelo: {s['modelo']} | Cantidad: **{s['cantidad']} un.**")
-

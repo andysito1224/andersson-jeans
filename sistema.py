@@ -6,10 +6,10 @@ import base64
 st.set_page_config(page_title="Andersson Jean's - Stickers Térmicos", layout="centered")
 
 st.title("👖 Andersson Jean's & Confecciones")
-st.subheader("🏷️ Módulo de Registro y Stickers Térmicos")
-st.markdown("Selecciona el cliente, ingresa el pedido y los lotes para imprimir directo en tu rollo térmico.")
+st.subheader("🏷️ Generador de Stickers por Lote")
+st.markdown("Ingresa el pedido, selecciona el cliente y detalla cada lote tal como sale en tu nota.")
 
-# Lista completa de clientes frecuentes de tus talonarios
+# Lista de clientes frecuentes de tus talonarios
 CLIENTES_FRECUENTES = [
     "-- Selecciona un cliente --",
     "Melson Oñate",
@@ -35,38 +35,31 @@ CLIENTES_FRECUENTES = [
     "Darwin Pallo"
 ]
 
-# Inicializar estados de la sesión
+# Inicializar estados limpios
 if 'n_pedido' not in st.session_state:
     st.session_state['n_pedido'] = ""
-if 'cliente_sel' not in st.session_state:
-    st.session_state['cliente_sel'] = CLIENTES_FRECUENTES[0]
-if 'tipo_prenda' not in st.session_state:
-    st.session_state['tipo_prenda'] = "Pantalón Grande (P.6)"
 if 'lotes' not in st.session_state:
-    st.session_state['lotes'] = [{"desc": "Stone 1 + San Blas", "cantidad": 100}]
+    st.session_state['lotes'] = [{"desc": "Pantalón Grande [P.6] - Stone 1 + San Blas", "cantidad": 100}]
 
-# 1. Subir foto opcional (solo como referencia visual en pantalla)
-archivo_foto = st.file_uploader("Subir foto de la Nota (Opcional para referencia)", type=["jpg", "png", "jpeg"])
+# Referencia visual de la foto si la subes
+archivo_foto = st.file_uploader("Subir foto de la Nota (Referencia visual)", type=["jpg", "png", "jpeg"])
 if archivo_foto is not None:
-    st.image(archivo_foto, caption="Nota de referencia cargada", width=220)
+    st.image(archivo_foto, caption="Nota cargada", width=220)
 
 st.markdown("---")
 
-# 2. Datos generales del pedido
+# Datos directos
 n_pedido = st.text_input("N° de Pedido / Nota", value=st.session_state['n_pedido'])
 
-cliente_dropdown = st.selectbox("Cliente Frecuente", options=CLIENTES_FRECUENTES)
+cliente_dropdown = st.selectbox("Cliente", options=CLIENTES_FRECUENTES)
 if cliente_dropdown != CLIENTES_FRECUENTES[0]:
     cliente_final = cliente_dropdown
 else:
     cliente_final = st.text_input("O escribe el nombre del cliente", value="")
 
-tipo_prenda = st.text_input("Prenda Principal (ej. Pantalón Grande [P.6], Pantalón Pequeño [P.P.], Vestido P.)", value=st.session_state['tipo_prenda'])
-
 st.markdown("---")
-st.markdown("### 📋 Desglose de Lotes / Procesos")
+st.markdown("### 📋 Lotes del Pedido (Escribe aquí la prenda y el proceso completo)")
 
-# Botones para agregar o quitar lotes dinámicamente
 col_b1, col_b2 = st.columns(2)
 with col_b1:
     if st.button("➕ Añadir otro lote"):
@@ -81,7 +74,7 @@ lotes_actualizados = []
 for idx, lote in enumerate(st.session_state['lotes']):
     col1, col2 = st.columns([3, 1])
     with col1:
-        d = st.text_input(f"Proceso Lote #{idx+1}", value=lote['desc'], key=f"desc_{idx}")
+        d = st.text_input(f"Lote #{idx+1} (Ej: Pantalón Grande [P.6] - Negro)", value=lote['desc'], key=f"desc_{idx}")
     with col2:
         c = st.number_input(f"Cant #{idx+1}", value=int(lote['cantidad']), key=f"cant_{idx}")
     lotes_actualizados.append({"desc": d, "cantidad": c})
@@ -90,17 +83,17 @@ st.session_state['lotes'] = lotes_actualizados
 
 st.markdown("---")
 
-# 3. Generación e impresión de etiquetas térmicas
+# Botón para generar stickers térmicos e imprimirlos
 if st.button("🖨️ Generar Etiquetas para Rollo Térmico"):
     cliente_a_usar = cliente_final if cliente_final else cliente_dropdown
     
     if not n_pedido or cliente_a_usar == CLIENTES_FRECUENTES[0] or len(st.session_state['lotes']) == 0:
-        st.error("Por favor ingresa el número de pedido, selecciona un cliente y asegúrate de tener al menos un lote.")
+        st.error("Por favor completa el N° de pedido, el cliente y al menos un lote.")
     else:
         st.success(f"¡Etiquetas listas para imprimir para el pedido N° {n_pedido}!")
         
         for idx, lote in enumerate(st.session_state['lotes']):
-            info_qr = f"Ped:{n_pedido}|Cli:{cliente_a_usar}|Prenda:{tipo_prenda}|Lote:#{idx+1}|Proc:{lote['desc']}|Cant:{lote['cantidad']}"
+            info_qr = f"Ped:{n_pedido}|Cli:{cliente_a_usar}|Lote:#{idx+1}|Proc:{lote['desc']}|Cant:{lote['cantidad']}"
             
             qr = qrcode.QRCode(version=1, box_size=4, border=1)
             qr.add_data(info_qr)
@@ -111,6 +104,7 @@ if st.button("🖨️ Generar Etiquetas para Rollo Térmico"):
             img_qr.save(buffered, format="PNG")
             qr_base64 = base64.b64encode(buffered.getvalue()).decode()
             
+            # Etiqueta térmica compacta sin rellenos extraños
             st.markdown(f"""
             <div style="width: 280px; border: 1.5px solid #000; padding: 8px; border-radius: 4px; margin-bottom: 12px; background-color: #fff; color: #000; font-family: Arial, sans-serif;">
                 <div style="text-align: center; font-weight: bold; font-size: 14px; margin-bottom: 2px;">ANDERSON JEAN'S</div>
@@ -118,8 +112,7 @@ if st.button("🖨️ Generar Etiquetas para Rollo Térmico"):
                 <div style="font-size: 11px; line-height: 1.2;">
                     <b>Cliente:</b> {cliente_a_usar}<br>
                     <b>Pedido:</b> {n_pedido} | <b>Lote:</b> #{idx+1}<br>
-                    <b>Prenda:</b> {tipo_prenda}<br>
-                    <b>Proceso:</b> {lote['desc']}<br>
+                    <b>Detalle:</b> {lote['desc']}<br>
                     <b>Prendas:</b> {lote['cantidad']} unds<br>
                     <b>Peso:</b> ____________ kg
                 </div>
@@ -129,10 +122,9 @@ if st.button("🖨️ Generar Etiquetas para Rollo Térmico"):
             </div>
             """, unsafe_allow_html=True)
 
-        # Limpieza automática (encerado de pantalla para el siguiente pedido)
+        # Limpieza automática para el siguiente pedido
         st.session_state['n_pedido'] = ""
-        st.session_state['cliente_sel'] = CLIENTES_FRECUENTES[0]
         st.session_state['lotes'] = [{"desc": "", "cantidad": 50}]
         
-        if st.button("🔄 Limpiar y listo para el siguiente pedido"):
+        if st.button("🔄 Limpiar pantalla para siguiente pedido"):
             st.rerun()

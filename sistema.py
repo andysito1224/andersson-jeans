@@ -1,6 +1,7 @@
 import streamlit as st
 import qrcode
 from io import BytesIO
+from PIL import Image
 
 st.set_page_config(page_title="Andersson Jean's & Confecciones", page_icon="👖", layout="centered")
 
@@ -56,7 +57,6 @@ if st.session_state.usuario_actual is None:
     ingreso_clave = st.text_input("Ingrese su clave o cédula de acceso", type="password")
     
     if st.button("🚀 Ingresar"):
-        # Convertir a minúsculas para que 'luis', 'luz', 'admin', etc., funcionen sin problemas de mayúsculas
         clave_limpia = ingreso_clave.strip().lower()
         if clave_limpia in ACCESOS_DB:
             st.session_state.usuario_actual = ACCESOS_DB[clave_limpia]
@@ -116,7 +116,6 @@ elif tipo_user == "Manualidades":
     st.header(f"📱 Módulo Manualidades - {nombre_user}")
     st.write("Escanee o digite el código del lote para sumarlo al instante a su bitácora diaria:")
 
-    # Opción de foto de comprobación del QR si lo desean
     foto_qr = st.camera_input("📷 Tomar foto al Sticker QR (Opcional)")
 
     with st.form("form_escaneo_manualidades", clear_on_submit=True):
@@ -129,8 +128,7 @@ elif tipo_user == "Manualidades":
                 lote = st.session_state.lotes_lavanderia[code_clean]
                 total_pago = lote['cantidad'] * lote['precio']
                 
-                # Guardar en la bitácora del operario activo
-                nombre_real = nombre_user.split(" ")[0] # Saca solo el nombre ej: Patto
+                nombre_real = nombre_user.split(" ")[0]
                 st.session_state.produccion_manualidades[nombre_real].append({
                     "lote_id": lote['id'],
                     "cliente": lote['cliente'],
@@ -190,7 +188,6 @@ elif tipo_user == "Confeccion_Lourds":
             foto_salida = st.file_uploader("Tomar / Subir foto de la Hoja de Salida de Mercadería", type=["jpg", "jpeg", "png"])
             cant_sale = st.number_input("Cantidad de prendas que salen", min_value=1, value=10)
             
-            # Seleccionar corte a descontar
             opc_cortes = [f"Corte #{c['corte']} - {c['modelo']} (Stock: {c['stock']})" for c in st.session_state.cortes_lourds]
             sel_c = st.selectbox("Seleccionar Lote de Corte", opc_cortes)
 
@@ -250,4 +247,3 @@ elif tipo_user == "Admin":
         else:
             for s in st.session_state.salidas_mercaderia:
                 st.markdown(f"▫️ Destino: **{s['destino']}** | Modelo: {s['modelo']} | Cantidad: **{s['cantidad']} un.**")
-    

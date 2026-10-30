@@ -121,7 +121,6 @@ elif tipo_user == "Manualidades":
     st.header(f"📱 Módulo Manualidades - {nombre_user}")
     st.write("Tome foto del código QR o digite el número de pedido para registrarlo al instante:")
 
-    # Botón de cámara operativo para capturar el QR al instante
     foto_qr_camara = st.camera_input("📷 Tomar foto al Sticker QR")
 
     with st.form("form_escaneo_manualidades", clear_on_submit=True):

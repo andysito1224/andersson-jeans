@@ -5,7 +5,7 @@ from io import BytesIO
 st.set_page_config(page_title="Andersson Jean's - Control Operarios", page_icon="👖", layout="centered")
 
 st.title("👖 Andersson Jean's & Confecciones")
-st.subheader("Sistema Rápido de Escaneo para Operarios")
+st.subheader("Sistema de Escaneo Rápido de Lotes")
 
 # BASE DE DATOS DE USUARIOS Y ROLES
 ROLES_DB = {
@@ -88,7 +88,7 @@ if rol_user == "Recepcion":
             st.success(f"¡Lote #{nuevo_id} creado con éxito!")
 
     st.markdown("---")
-    st.subheader("🏷️ Stickers Generados")
+    st.subheader("🏷️ Stickers Generados (Listos para imprimir)")
     for k, l in st.session_state.lotes_oficiales.items():
         st.markdown(f"* **Lote #{k}** | {l['cliente']} - {l['prenda']} ({l['cantidad']} un.) | Proceso: {l['proceso']}")
         qr_data = f"LOTE_{k}"
@@ -98,26 +98,28 @@ if rol_user == "Recepcion":
         st.image(buf.getvalue(), width=120, caption=f"QR Lote #{k}")
 
 # ==========================================
-# 2. OPERARIOS (PANTALLA DE ESCANEO CONTINUO)
+# 2. OPERARIOS (PANTALLA DE ESCANEO RÁPIDO)
 # ==========================================
 elif rol_user == "Operario":
     st.header(f"📱 Escaneo de Producción - {nombre_user}")
-    st.write("Escanee o ingrese el número de lote del sticker para registrarlo al instante:")
+    st.write("Escanea o digita el número del lote para registrarlo de inmediato en tu bitácora:")
 
-    # Cuadro rápido para colocar el código del lote escaneado
+    # Opción con la cámara del celular para tomar foto al QR directamente si lo desean
+    foto_qr = st.camera_input("📷 Tomar foto al Sticker QR (Opcional)")
+
+    # Entrada rápida por texto / número de lote
     with st.form("form_escaneo_rapido", clear_on_submit=True):
-        codigo_escaneado = st.text_input("🔍 Escanear / Digitar Código de Lote (ej: 1, 2, 3...)")
-        btn_registrar = st.form_submit_button("⚡ Registrar Lote Escaneado")
+        codigo_escaneado = st.text_input("⚡ Número de Lote (ej: 1, 2, 3...)")
+        btn_registrar = st.form_submit_button("🚀 Registrar y Sumar a mi Bitácora")
         
-        if btn_registrar:
-            # Limpiar el código por si escanean texto con formato
+        if btn_registrar and codigo_escaneado:
             code_clean = codigo_escaneado.strip().replace("LOTE_", "")
             
             if code_clean in st.session_state.lotes_oficiales:
                 lote = st.session_state.lotes_oficiales[code_clean]
                 total_lote = lote['cantidad'] * lote['precio']
                 
-                # Guardar directo en la bitácora del operario
+                # Guardar en la bitácora del operario
                 st.session_state.produccion_operarios[nombre_user].append({
                     "lote_id": lote['id'],
                     "cliente": lote['cliente'],
@@ -126,14 +128,14 @@ elif rol_user == "Operario":
                 })
                 st.success(f"✅ ¡Lote #{lote['id']} registrado! Se sumaron ${total_lote:.2f} a tu bitácora.")
             else:
-                st.error("❌ Código de lote no encontrado o inválido. Verifique el QR.")
+                st.error("❌ Lote no encontrado. Verifique el código.")
 
     st.markdown("---")
     st.subheader("📊 Tu Bitácora y Ganancias de Hoy")
     mis_reg = st.session_state.produccion_operarios.get(nombre_user, [])
     
     if not mis_reg:
-        st.info("_Aún no tienes lotes registrados hoy. Escanea tu primer lote arriba._")
+        st.info("_Aún no tienes lotes registrados hoy. Ingresa tu código arriba._")
     else:
         total_dia = 0
         for idx, item in enumerate(mis_reg, 1):

@@ -1,3 +1,4 @@
+
 import streamlit as st
 import qrcode
 from io import BytesIO
@@ -27,10 +28,9 @@ if 'lotes_oficiales' not in st.session_state:
         {"id": 45, "cliente": "Geison Urrutia", "prenda": "3 Botones / Extias", "cantidad": 1350, "proceso": "Azul y Negro", "precio": 0.06}
     ]
 
-# INVENTARIO EN VIVO DE CONFECCIÓN (MAMÁ) - Basado en los tickets de corte
+# INVENTARIO EN VIVO DE CONFECCIÓN (MAMÁ)
 if 'inventario_confeccion' not in st.session_state:
     st.session_state.inventario_confeccion = [
-        # Ejemplo inicial basado en tus notas de corte recientes
         {"modelo": "Kasandra", "talla": "8", "stock": 48, "precio": 10.00},
         {"modelo": "Kasandra", "talla": "10", "stock": 48, "precio": 10.00},
         {"modelo": "Kasandra", "talla": "12", "stock": 48, "precio": 10.00},
@@ -41,7 +41,6 @@ if 'inventario_confeccion' not in st.session_state:
         {"modelo": "Modelo A", "talla": "14", "stock": 24, "precio": 10.00},
     ]
 
-# Historial de salidas / ventas a los 4 destinos
 if 'historial_salidas' not in st.session_state:
     st.session_state.historial_salidas = []
 
@@ -153,7 +152,6 @@ elif menu == "3. 📦 Inventario y Bodega (Mamá)":
     st.header("🧵 Inventario en Vivo - Confección de Mamá")
     st.write("Control de prendas terminadas listas para ofrecer y vender.")
 
-    # Agregar nuevo corte recibido
     with st.expander("➕ Registrar Nuevo Corte en Bodega"):
         with st.form("form_nuevo_corte"):
             c_modelo = st.text_input("Modelo (ej: Kasandra, Wayted, Baggy)")
@@ -170,7 +168,7 @@ elif menu == "3. 📦 Inventario y Bodega (Mamá)":
 
     st.markdown("---")
     st.subheader("📋 Stock Actual Disponible en Bodega")
-    for idx, item in enumerate(st.session_state.inventario_confeccion):
+    for item in st.session_state.inventario_confeccion:
         st.markdown(f"🔹 **Modelo:** {item['modelo']} | **Talla:** {item['talla']} | Stock Disponible: **{item['stock']} un.** | Precio: **${item['precio']:.2f}**")
 
     if st.session_state.historial_salidas:
@@ -191,7 +189,6 @@ elif menu == "4. 🚚 Registrar Salida (Ventas / Destinos)":
             destinos_disponibles = ["Mayorista", "Cuenca", "TikTok", "Clientes Fijos"]
             destino_elegido = st.selectbox("Canal de Destino", destinos_disponibles)
             
-            # Opciones de inventario
             opciones_inv = [f"{i['modelo']} - Talla {i['talla']} (Stock: {i['stock']} un.)" for i in st.session_state.inventario_confeccion]
             prod_elegido_str = st.selectbox("Seleccionar Prenda", opciones_inv)
             
@@ -199,14 +196,11 @@ elif menu == "4. 🚚 Registrar Salida (Ventas / Destinos)":
             
             btn_descontar = st.form_submit_button("📉 Despachar y Descontar de Bodega")
             if btn_descontar:
-                # Buscar índice del producto seleccionado
                 idx_encontrado = opciones_inv.index(prod_elegido_str)
                 prod_actual = st.session_state.inventario_confeccion[idx_encontrado]
                 
                 if prod_actual['stock'] >= cant_salida:
-                    # Descontar stock
                     st.session_state.inventario_confeccion[idx_encontrado]['stock'] -= cant_salida
-                    # Registrar en historial
                     st.session_state.historial_salidas.append({
                         "destino": destino_elegido,
                         "modelo": prod_actual['modelo'],
@@ -216,4 +210,3 @@ elif menu == "4. 🚚 Registrar Salida (Ventas / Destinos)":
                     st.success(f"¡Despacho registrado con éxito! Se descontaron {cant_salida} unidades para **{destino_elegido}**. Stock actual restante: {st.session_state.inventario_confeccion[idx_encontrado]['stock']} un.")
                 else:
                     st.error(f"❌ Error: No hay suficiente stock. Solo quedan {prod_actual['stock']} unidades disponibles.")
-        st.markdown(f"- **{item['producto']}** (Talla: {item['talla']}) | Stock: **{item['stock']} un.** | Precio: **${item['precio_unit']:.2f}**")

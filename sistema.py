@@ -87,7 +87,6 @@ if tipo_user == "Lavanderia_Recepcion":
             if not nro_pedido.strip():
                 st.error("❌ Por favor ingrese el número de pedido o nota.")
             else:
-                # Verificador de duplicados
                 pedido_existe = False
                 for l in st.session_state.lotes_lavanderia.values():
                     if l.get('nro_pedido') == nro_pedido.strip():
@@ -129,7 +128,6 @@ elif tipo_user == "Manualidades":
         if btn_reg and cod_lote:
             code_clean = cod_lote.strip().replace("LOTE_", "")
             
-            # Buscar por ID o por N° de pedido
             lote_encontrado = None
             for k, l in st.session_state.lotes_lavanderia.items():
                 if k == code_clean or l.get('nro_pedido') == code_clean:
@@ -191,7 +189,6 @@ elif tipo_user == "Confeccion_Lourds":
 
             sub_corte = st.form_submit_button("📥 Guardar Corte en Bodega")
             if sub_corte and n_corte:
-                # Verificar duplicado de corte
                 corte_existe = any(c['corte'] == n_corte.strip() for c in st.session_state.cortes_lourds)
                 if corte_existe:
                     st.error(f"❌ Este talonario de corte (N° {n_corte}) ya fue registrado anteriormente.")

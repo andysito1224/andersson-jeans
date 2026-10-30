@@ -119,7 +119,6 @@ elif rol_user == "Operario":
     if not st.session_state.lotes_oficiales:
         st.info("No hay lotes activos asignados por recepción todavía.")
     else:
-        # Menú desplegable continuo para elegir lotes actuales o nuevos
         opciones = [f"Lote #{l['id']} - {l['cliente']} ({l['prenda']} - {l['cantidad']} un.) - {l['proceso']}" for l in st.session_state.lotes_oficiales]
         lote_sel = st.selectbox("Seleccionar Lote Siguiente / Escaneado", opciones)
         
